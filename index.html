@@ -112,6 +112,7 @@
             display: none;
             z-index: 1000;
         }
+        /* Power Alert Styles */
         .power-alert {
             position: fixed;
             top: 0;
@@ -147,6 +148,37 @@
             color: white;
             margin-bottom: 15px;
         }
+        /* iOS Alert Styles */
+        .ios-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        .ios-alert-content {
+            background-color: #FF9800;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 80%;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        .ios-alert h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .ios-alert p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
         .text-cool {
             color: #4CAF50;
         }
@@ -165,6 +197,7 @@
             text-align: center;
         }
     </style>
+    <!-- Add Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
@@ -174,6 +207,15 @@
             <span class="material-icons power-icon">power_off</span>
             <h2 id="powerAlertTitle">Sumber Daya Tidak Terhubung</h2>
             <p id="powerAlertMessage">Silakan hubungkan perangkat Anda ke sumber daya untuk melanjutkan.</p>
+        </div>
+    </div>
+
+    <!-- iOS Alert Overlay -->
+    <div id="iosAlert" class="ios-alert" style="display: none;">
+        <div class="ios-alert-content">
+            <span class="material-icons power-icon">error</span>
+            <h2 id="iosAlertTitle">Perangkat Tidak Didukung</h2>
+            <p id="iosAlertMessage">Aplikasi ini tidak mendukung perangkat iOS (iPhone/iPad). Silakan gunakan perangkat Android atau komputer.</p>
         </div>
     </div>
 
@@ -316,11 +358,9 @@
                 // Power alert
                 powerAlertTitle: "Sumber Daya Tidak Terhubung",
                 powerAlertMessage: "Silakan hubungkan perangkat Anda ke sumber daya untuk melanjutkan.",
-                // iOS and browser compatibility messages
-                iosNotSupported: "Perangkat iOS tidak mendukung informasi baterai",
-                iosBatteryExplanation: "Perangkat iOS (iPhone/iPad) tidak mendukung API Baterai karena batasan Safari.",
-                browserNotSupported: "Browser Anda tidak mendukung API Baterai yang diperlukan untuk deteksi baterai.",
-                notAvailable: "Tidak tersedia"
+                // iOS alert
+                iosAlertTitle: "Perangkat Tidak Didukung",
+                iosAlertMessage: "Aplikasi ini tidak mendukung perangkat iOS (iPhone/iPad). Silakan gunakan perangkat Android atau komputer."
             },
             en: {
                 title: "System Detector",
@@ -359,16 +399,19 @@
                 // Power alert
                 powerAlertTitle: "Power Source Not Connected",
                 powerAlertMessage: "Please connect your device to a power source to continue.",
-                // iOS and browser compatibility messages
-                iosNotSupported: "iOS devices don't support battery information",
-                iosBatteryExplanation: "iOS devices (iPhone/iPad) don't support the Battery API due to Safari restrictions.",
-                browserNotSupported: "Your browser doesn't support the Battery API required for battery detection.",
-                notAvailable: "Not available"
+                // iOS alert
+                iosAlertTitle: "Device Not Supported",
+                iosAlertMessage: "This application does not support iOS devices (iPhone/iPad). Please use an Android device or computer."
             }
         };
         
         let currentLang = 'id';
         let isPowerConnected = false;
+        
+        // Function to detect iOS devices
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
         
         function switchLanguage() {
             currentLang = document.getElementById('languageSwitcher').value;
@@ -379,6 +422,12 @@
                 translations[currentLang].powerAlertTitle;
             document.getElementById('powerAlertMessage').textContent = 
                 translations[currentLang].powerAlertMessage;
+                
+            // Update iOS alert translations
+            document.getElementById('iosAlertTitle').textContent = 
+                translations[currentLang].iosAlertTitle;
+            document.getElementById('iosAlertMessage').textContent = 
+                translations[currentLang].iosAlertMessage;
         }
 
         function updateTranslations() {
@@ -422,10 +471,19 @@
                     if (powerAlert.style.display === 'flex') {
                         powerAlert.style.display = 'none';
                         document.body.style.overflow = '';
-                        isPowerConnected = true;
+                        isPowerConnected = false;
                     }
-                }, 3000); // 3 seconds timeout
+                }, 3000); // 3 seconds
             }
+        }
+        
+        function showIOSAlert() {
+            document.getElementById('iosAlert').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Hide all other content
+            document.querySelector('.container').style.display = 'none';
+            document.querySelector('footer').style.display = 'none';
         }
 
         function activateFeature(feature) {
@@ -458,6 +516,12 @@
         }
 
         function startLoading() {
+            // First check if device is iOS
+            if (isIOS()) {
+                showIOSAlert();
+                return;
+            }
+            
             showPopup(translations[currentLang].checkingSystem);
             setTimeout(() => {
                 getBatteryInfo();
@@ -466,44 +530,20 @@
             }, 2000);
         }
 
-        // Check if device is iOS
-        function isIOS() {
-            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        }
-
-        // Check if Battery API is supported
-        function isBatteryAPISupported() {
-            return 'getBattery' in navigator;
-        }
-
         function updateBatteryStatus() {
-            const statusDiv = document.getElementById('status');
-            const powerSourceElement = document.getElementById('powerSource');
-            
-            // Handle iOS devices
-            if (isIOS()) {
-                statusDiv.textContent = translations[currentLang].iosNotSupported;
-                statusDiv.style.backgroundColor = "#FF9800";
-                statusDiv.style.color = "white";
-                
-                // Hide power alert and assume connected
-                togglePowerAlert(false);
-                isPowerConnected = true;
-                return;
-            }
-            
-            // Handle Battery API supported devices
-            if (isBatteryAPISupported()) {
+            if (navigator.getBattery) {
                 navigator.getBattery().then(function(battery) {
+                    let statusDiv = document.getElementById('status');
+                    let powerSourceElement = document.getElementById('powerSource');
+                    
                     if (battery.charging) {
                         statusDiv.textContent = translations[currentLang].powerConnected;
                         statusDiv.style.backgroundColor = "#4CAF50";
                         statusDiv.style.color = "white";
                         powerSourceElement.textContent = translations[currentLang].powerSource + "Adaptor";
                         
-                        // Hide power alert if power is connected
+                        // Hide power alert if it was showing and power is now connected
                         togglePowerAlert(false);
-                        isPowerConnected = true;
                     } else {
                         statusDiv.textContent = translations[currentLang].powerDisconnected;
                         statusDiv.style.backgroundColor = "#F44336";
@@ -512,75 +552,41 @@
                         
                         // Show power alert when power is disconnected
                         togglePowerAlert(true);
-                        isPowerConnected = false;
                     }
-                }).catch(function(error) {
-                    console.log("Error accessing battery: ", error);
-                    handleNoBatteryAPI();
                 });
             } else {
-                handleNoBatteryAPI();
+                document.getElementById('status').textContent = translations[currentLang].batteryUnavailable;
+                document.getElementById('status').style.backgroundColor = "#FF9800";
+                document.getElementById('status').style.color = "white";
+                
+                // For browsers without Battery API, we'll assume power is connected
+                togglePowerAlert(false);
             }
-        }
-
-        function handleNoBatteryAPI() {
-            const statusDiv = document.getElementById('status');
-            
-            statusDiv.textContent = translations[currentLang].batteryUnavailable;
-            statusDiv.style.backgroundColor = "#FF9800";
-            statusDiv.style.color = "white";
-            
-            // Assume power is connected to prevent annoying alerts
-            togglePowerAlert(false);
-            isPowerConnected = true;
-        }
-
-        // Helper function to set all battery info to unavailable
-        function setUnavailableBatteryInfo() {
-            const unavailable = translations[currentLang].notAvailable;
-            
-            document.getElementById('batteryCapacity').textContent = 
-                translations[currentLang].batteryCapacity + unavailable;
-            document.getElementById('batteryVoltage').textContent = 
-                translations[currentLang].batteryVoltage + unavailable;
-            document.getElementById('batteryTech').textContent = 
-                translations[currentLang].batteryTechnology + unavailable;
-            document.getElementById('batteryTemp').textContent = 
-                translations[currentLang].batteryTemperature + unavailable;
-            document.getElementById('batteryDuration').textContent = 
-                translations[currentLang].batteryDuration + unavailable;
-            document.getElementById('powerSource').textContent = 
-                translations[currentLang].powerSource + unavailable;
         }
 
         function getBatteryInfo() {
-            const batterySection = document.querySelector('.info-card:first-of-type'); 
-            
-            // Handle iOS devices
-            if (isIOS()) {
-                handleIOSBatteryInfo(batterySection);
-                return;
-            }
-            
-            // Handle Battery API supported devices
-            if (isBatteryAPISupported()) {
+            if (navigator.getBattery) {
                 navigator.getBattery().then(function(battery) {
-                    // Display battery info
+                    // Capacity
                     const capacity = Math.round(battery.level * 100);
                     document.getElementById('batteryCapacity').textContent = 
                         translations[currentLang].batteryCapacity + capacity + "%";
                     
+                    // Voltage - simulate since not directly available
                     const voltage = "≤4150 mV";
                     document.getElementById('batteryVoltage').textContent = 
                         translations[currentLang].batteryVoltage + voltage;
                     
+                    // Technology
                     document.getElementById('batteryTech').textContent = 
                         translations[currentLang].batteryTechnology + "Li-poly";
                     
+                    // Temperature - simulate since not directly available
                     const temp = "29°C (Sejuk)";
                     document.getElementById('batteryTemp').textContent = 
                         translations[currentLang].batteryTemperature + temp;
                     
+                    // Duration - estimate based on current level
                     const duration = "± 12 - 14 jam";
                     document.getElementById('batteryDuration').textContent = 
                         translations[currentLang].batteryDuration + duration;
@@ -594,71 +600,26 @@
                         document.getElementById('batteryCapacity').textContent = 
                             translations[currentLang].batteryCapacity + Math.round(battery.level * 100) + "%";
                     });
-                }).catch(function(error) {
-                    console.log("Error accessing battery: ", error);
-                    handleNoBatteryAPIInfo(batterySection);
                 });
             } else {
-                handleNoBatteryAPIInfo(batterySection);
+                // Fallback for browsers without Battery API
+                const unavailable = currentLang === 'id' ? "Tidak tersedia" : "Not available";
+                
+                document.getElementById('batteryCapacity').textContent = 
+                    translations[currentLang].batteryCapacity + unavailable;
+                document.getElementById('batteryVoltage').textContent = 
+                    translations[currentLang].batteryVoltage + unavailable;
+                document.getElementById('batteryTech').textContent = 
+                    translations[currentLang].batteryTechnology + unavailable;
+                document.getElementById('batteryTemp').textContent = 
+                    translations[currentLang].batteryTemperature + unavailable;
+                document.getElementById('batteryDuration').textContent = 
+                    translations[currentLang].batteryDuration + unavailable;
+                document.getElementById('powerSource').textContent = 
+                    translations[currentLang].powerSource + unavailable;
             }
         }
-
-        function handleIOSBatteryInfo(batterySection) {
-            const statusDiv = document.getElementById('status');
-            
-            // Display iOS-specific message
-            statusDiv.textContent = translations[currentLang].iosNotSupported;
-            statusDiv.style.backgroundColor = "#FF9800";
-            statusDiv.style.color = "white";
-            
-            // Add explanation to battery section
-            addBatteryExplanation(batterySection, translations[currentLang].iosBatteryExplanation, "#FF9800");
-            
-            // Set all battery values to not available
-            setUnavailableBatteryInfo();
-            
-            // Assume power is connected to prevent annoying alerts on iOS
-            togglePowerAlert(false);
-            isPowerConnected = true;
-        }
-
-        function handleNoBatteryAPIInfo(batterySection) {
-            const statusDiv = document.getElementById('status');
-            
-            // Display browser compatibility message
-            statusDiv.textContent = translations[currentLang].batteryUnavailable;
-            statusDiv.style.backgroundColor = "#FF9800";
-            statusDiv.style.color = "white";
-            
-            // Add explanation to battery section
-            addBatteryExplanation(batterySection, translations[currentLang].browserNotSupported, "#FF9800");
-            
-            // Set all battery values to not available
-            setUnavailableBatteryInfo();
-            
-            // Assume power is connected to prevent annoying alerts
-            togglePowerAlert(false);
-            isPowerConnected = true;
-        }
-
-        function addBatteryExplanation(batterySection, message, color) {
-            // Check if explanation already exists
-            const existingExplanation = batterySection.querySelector('.battery-explanation');
-            if (existingExplanation) {
-                existingExplanation.querySelector('span:last-child').textContent = message;
-                return;
-            }
-            
-            // Create and add explanation
-            const explanationDiv = document.createElement('div');
-            explanationDiv.className = 'info-item battery-explanation';
-            explanationDiv.innerHTML = `
-                <span class="material-icons info-icon">info</span>
-                <span style="color: ${color}; font-weight: bold;">${message}</span>
-            `;
-            batterySection.appendChild(explanationDiv);
-        }
-
+        
         function getDeviceInfo() {
             const userAgent = navigator.userAgent;
             let browser = translations[currentLang].browserUnknown;
@@ -671,7 +632,7 @@
             let apiLevel = "28";
             let kernelArch = "AARCH64";
 
-            // Check for architecture
+            // Check for architecture - improved detection
             if (navigator.userAgent.indexOf("WOW64") !== -1 || 
                 navigator.userAgent.indexOf("Win64") !== -1 || 
                 navigator.userAgent.indexOf("x86_64") !== -1 || 
@@ -684,7 +645,7 @@
             }
 
             // Detect browser and version
-            if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
+            if (userAgent.includes("Chrome")) {
                 browser = "Chrome";
                 const match = userAgent.match(/Chrome\/(\d+)/);
                 if (match) browserVersion = match[1];
@@ -710,7 +671,7 @@
             if (userAgent.includes("Windows")) {
                 deviceOS = "Windows";
                 
-                // Windows version detection
+                // Windows 11 reports as Windows NT 10.0 but has newer build numbers
                 const windowsMatch = userAgent.match(/Windows NT 10.0(?:;|\))(?:.*)?( Build (\d+))?/);
                 const buildNumberStr = windowsMatch && windowsMatch[2];
                 const buildNumber = buildNumberStr ? parseInt(buildNumberStr) : 0;
@@ -719,7 +680,7 @@
                 if (buildNumber >= 22000) {
                     deviceOSVersion = "11";
                 } else {
-                    // For older versions
+                    // For older versions, use traditional detection
                     const ntMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
                     if (ntMatch) {
                         switch(ntMatch[1]) {
@@ -732,22 +693,20 @@
                     }
                 }
                 
-                // Try User Agent Client Hints for Windows 11 detection
+                // Additional Windows 11 detection methods
                 if (deviceOSVersion === "10" && navigator.userAgentData) {
-                    try {
-                        navigator.userAgentData.getHighEntropyValues(["platformVersion"])
-                        .then(ua => {
-                            const platformVersion = parseInt(ua.platformVersion.split('.')[0]);
-                            if (platformVersion >= 13) {
-                                deviceOSVersion = "11";
-                                updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
-                            }
-                        }).catch(e => {
-                            console.log("Failed to get platformVersion", e);
-                        });
-                    } catch (e) {
-                        console.log("Client Hints API not fully supported");
-                    }
+                    // Use newer API if available
+                    navigator.userAgentData.getHighEntropyValues(["platformVersion"])
+                    .then(ua => {
+                        // Windows 11 has platform version >= 13
+                        if (parseInt(ua.platformVersion.split('.')[0]) >= 13) {
+                            deviceOSVersion = "11";
+                            updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
+                        }
+                    })
+                    .catch(e => {
+                        console.log("Could not get detailed platform info");
+                    });
                 }
             } else if (userAgent.includes("Mac")) {
                 deviceOS = "MacOS";
@@ -762,35 +721,9 @@
                 deviceModel = "smartphone";
                 const match = userAgent.match(/Android (\d+(\.\d+)?)/);
                 if (match) deviceOSVersion = match[1];
-            } else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) {
-                deviceOS = userAgent.includes("iPhone") ? "iPhone" : "iPad";
-                deviceModel = userAgent.includes("iPhone") ? "smartphone" : "tablet";
-                const match = userAgent.match(/OS (\d+[._]\d+)/);
-                if (match) deviceOSVersion = match[1].replace("_", ".");
             }
 
-            // Last resort detection for Windows 11 via User Agent Client Hints
-            // This is a modern API that might help with Windows 11 detection
-            if (deviceOS === "Windows" && deviceOSVersion === "10" && navigator.userAgentData) {
-                updateDeviceInfo(deviceModel, deviceOS, deviceOSVersion, vendor, hardware, apiLevel, kernelArch, browser, browserVersion);
-                
-                // Try to get more accurate Windows version information
-                try {
-                    navigator.userAgentData.getHighEntropyValues(["platformVersion"])
-                    .then(ua => {
-                        const platformVersion = parseInt(ua.platformVersion.split('.')[0]);
-                        if (platformVersion >= 13) {
-                            deviceOSVersion = "11";
-                            updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
-                        }
-                    });
-                } catch (e) {
-                    console.log("Client Hints API not fully supported");
-                }
-            } else {
-                // For other OS or if the above fails
-                updateDeviceInfo(deviceModel, deviceOS, deviceOSVersion, vendor, hardware, apiLevel, kernelArch, browser, browserVersion);
-            }
+            updateDeviceInfo(deviceModel, deviceOS, deviceOSVersion, vendor, hardware, apiLevel, kernelArch, browser, browserVersion);
         }
 
         function updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion) {
@@ -816,180 +749,6 @@
             
             document.getElementById('deviceBrowser').textContent = 
                 translations[currentLang].deviceBrowser + browser + (browserVersion ? ` (${browserVersion})` : "");
-            
-        // Add this function to detect iOS devices
-function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-}
-
-// Add this function to detect if battery API is supported
-function isBatteryAPISupported() {
-    return 'getBattery' in navigator;
-}
-
-// Modify the getBatteryInfo function
-function getBatteryInfo() {
-    const batterySection = document.querySelector('.info-card:nth-child(2)'); // Select the battery card
-    const statusDiv = document.getElementById('status');
-    
-    // Check if device is iOS
-    if (isIOS()) {
-        // Display iOS-specific message
-        statusDiv.textContent = currentLang === 'id' ? 
-            "Perangkat iOS tidak mendukung informasi baterai" : 
-            "iOS devices don't support battery information";
-        statusDiv.style.backgroundColor = "#FF9800";
-        statusDiv.style.color = "white";
-        
-        // Add explanation to battery section
-        const explanationDiv = document.createElement('div');
-        explanationDiv.className = 'info-item';
-        explanationDiv.innerHTML = `
-            <span class="material-icons info-icon">info</span>
-            <span style="color: #FF9800; font-weight: bold;">${
-                currentLang === 'id' ? 
-                "Perangkat iOS (iPhone/iPad) tidak mendukung API Baterai karena batasan Safari." : 
-                "iOS devices (iPhone/iPad) don't support the Battery API due to Safari restrictions."
-            }</span>
-        `;
-        batterySection.appendChild(explanationDiv);
-        
-        // Set all battery values to not available
-        setUnavailableBatteryInfo();
-        
-        // Assume power is connected to prevent annoying alerts on iOS
-        togglePowerAlert(false);
-        isPowerConnected = true;
-        return;
-    }
-    
-    // For other devices, check if Battery API is supported
-    if (isBatteryAPISupported()) {
-        navigator.getBattery().then(function(battery) {
-            // Original battery info code
-            const capacity = Math.round(battery.level * 100);
-            document.getElementById('batteryCapacity').textContent = 
-                translations[currentLang].batteryCapacity + capacity + "%";
-            
-            const voltage = "≤4150 mV";
-            document.getElementById('batteryVoltage').textContent = 
-                translations[currentLang].batteryVoltage + voltage;
-            
-            document.getElementById('batteryTech').textContent = 
-                translations[currentLang].batteryTechnology + "Li-poly";
-            
-            const temp = "29°C (Sejuk)";
-            document.getElementById('batteryTemp').textContent = 
-                translations[currentLang].batteryTemperature + temp;
-            
-            const duration = "± 12 - 14 jam";
-            document.getElementById('batteryDuration').textContent = 
-                translations[currentLang].batteryDuration + duration;
-            
-            // Update charging status
-            updateBatteryStatus();
-            
-            // Add event listeners
-            battery.addEventListener('chargingchange', updateBatteryStatus);
-            battery.addEventListener('levelchange', function() {
-                document.getElementById('batteryCapacity').textContent = 
-                    translations[currentLang].batteryCapacity + Math.round(battery.level * 100) + "%";
-            });
-        });
-    } else {
-        // For browsers without Battery API but not iOS
-        statusDiv.textContent = translations[currentLang].batteryUnavailable;
-        statusDiv.style.backgroundColor = "#FF9800";
-        statusDiv.style.color = "white";
-        
-        // Add explanation to battery section
-        const explanationDiv = document.createElement('div');
-        explanationDiv.className = 'info-item';
-        explanationDiv.innerHTML = `
-            <span class="material-icons info-icon">info</span>
-            <span style="color: #FF9800; font-weight: bold;">${
-                currentLang === 'id' ? 
-                "Browser Anda tidak mendukung API Baterai yang diperlukan untuk deteksi baterai." : 
-                "Your browser doesn't support the Battery API required for battery detection."
-            }</span>
-        `;
-        batterySection.appendChild(explanationDiv);
-        
-        setUnavailableBatteryInfo();
-        
-        // Assume power is connected to prevent annoying alerts
-        togglePowerAlert(false);
-        isPowerConnected = true;
-    }
-}
-
-// Helper function to set all battery info to unavailable
-function setUnavailableBatteryInfo() {
-    const unavailable = currentLang === 'id' ? "Tidak tersedia" : "Not available";
-    
-    document.getElementById('batteryCapacity').textContent = 
-        translations[currentLang].batteryCapacity + unavailable;
-    document.getElementById('batteryVoltage').textContent = 
-        translations[currentLang].batteryVoltage + unavailable;
-    document.getElementById('batteryTech').textContent = 
-        translations[currentLang].batteryTechnology + unavailable;
-    document.getElementById('batteryTemp').textContent = 
-        translations[currentLang].batteryTemperature + unavailable;
-    document.getElementById('batteryDuration').textContent = 
-        translations[currentLang].batteryDuration + unavailable;
-    document.getElementById('powerSource').textContent = 
-        translations[currentLang].powerSource + unavailable;
-}
-
-// Also modify updateBatteryStatus function
-function updateBatteryStatus() {
-    if (isIOS()) {
-        // For iOS, don't show power alerts and assume connected
-        let statusDiv = document.getElementById('status');
-        statusDiv.textContent = currentLang === 'id' ? 
-            "Perangkat iOS tidak mendukung informasi baterai" : 
-            "iOS devices don't support battery information";
-        statusDiv.style.backgroundColor = "#FF9800";
-        statusDiv.style.color = "white";
-        
-        // Hide power alert
-        togglePowerAlert(false);
-        isPowerConnected = true;
-        return;
-    }
-    
-    if (isBatteryAPISupported()) {
-        navigator.getBattery().then(function(battery) {
-            let statusDiv = document.getElementById('status');
-            let powerSourceElement = document.getElementById('powerSource');
-            
-            if (battery.charging) {
-                statusDiv.textContent = translations[currentLang].powerConnected;
-                statusDiv.style.backgroundColor = "#4CAF50";
-                statusDiv.style.color = "white";
-                powerSourceElement.textContent = translations[currentLang].powerSource + "Adaptor";
-                
-                // Hide power alert if it was showing and power is now connected
-                togglePowerAlert(false);
-            } else {
-                statusDiv.textContent = translations[currentLang].powerDisconnected;
-                statusDiv.style.backgroundColor = "#F44336";
-                statusDiv.style.color = "white";
-                powerSourceElement.textContent = translations[currentLang].powerSource + "Baterai";
-                
-                // Show power alert when power is disconnected
-                togglePowerAlert(true);
-            }
-        });
-    } else {
-        document.getElementById('status').textContent = translations[currentLang].batteryUnavailable;
-        document.getElementById('status').style.backgroundColor = "#FF9800";
-        document.getElementById('status').style.color = "white";
-        
-        // For browsers without Battery API, we'll assume power is connected
-        togglePowerAlert(false);
-    }
-}
         }
         
         window.onload = function() {
