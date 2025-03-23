@@ -112,7 +112,6 @@
             display: none;
             z-index: 1000;
         }
-        /* New Styles for Power Alert */
         .power-alert {
             position: fixed;
             top: 0;
@@ -166,7 +165,6 @@
             text-align: center;
         }
     </style>
-    <!-- Add Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
@@ -317,7 +315,12 @@
                 featureActivated: "Fitur telah diaktifkan!",
                 // Power alert
                 powerAlertTitle: "Sumber Daya Tidak Terhubung",
-                powerAlertMessage: "Silakan hubungkan perangkat Anda ke sumber daya untuk melanjutkan."
+                powerAlertMessage: "Silakan hubungkan perangkat Anda ke sumber daya untuk melanjutkan.",
+                // iOS and browser compatibility messages
+                iosNotSupported: "Perangkat iOS tidak mendukung informasi baterai",
+                iosBatteryExplanation: "Perangkat iOS (iPhone/iPad) tidak mendukung API Baterai karena batasan Safari.",
+                browserNotSupported: "Browser Anda tidak mendukung API Baterai yang diperlukan untuk deteksi baterai.",
+                notAvailable: "Tidak tersedia"
             },
             en: {
                 title: "System Detector",
@@ -355,7 +358,12 @@
                 featureActivated: "Feature has been activated!",
                 // Power alert
                 powerAlertTitle: "Power Source Not Connected",
-                powerAlertMessage: "Please connect your device to a power source to continue."
+                powerAlertMessage: "Please connect your device to a power source to continue.",
+                // iOS and browser compatibility messages
+                iosNotSupported: "iOS devices don't support battery information",
+                iosBatteryExplanation: "iOS devices (iPhone/iPad) don't support the Battery API due to Safari restrictions.",
+                browserNotSupported: "Your browser doesn't support the Battery API required for battery detection.",
+                notAvailable: "Not available"
             }
         };
         
@@ -404,21 +412,21 @@
         }
 
         function togglePowerAlert(show) {
-    const powerAlert = document.getElementById('powerAlert');
-    powerAlert.style.display = show ? 'flex' : 'none';
-    document.body.style.overflow = show ? 'hidden' : '';
-    isPowerConnected = !show;
-    
-    if (show) {
-        setTimeout(() => {
-            if (powerAlert.style.display === 'flex') {
-                powerAlert.style.display = 'none';
-                document.body.style.overflow = '';
-                isPowerConnected = false;
+            const powerAlert = document.getElementById('powerAlert');
+            powerAlert.style.display = show ? 'flex' : 'none';
+            document.body.style.overflow = show ? 'hidden' : '';
+            isPowerConnected = !show;
+            
+            if (show) {
+                setTimeout(() => {
+                    if (powerAlert.style.display === 'flex') {
+                        powerAlert.style.display = 'none';
+                        document.body.style.overflow = '';
+                        isPowerConnected = true;
+                    }
+                }, 3000); // 3 seconds timeout
             }
-        }, 3000); // 3 detik
-    }
-}
+        }
 
         function activateFeature(feature) {
             // Only allow feature activation if power is connected
@@ -458,20 +466,44 @@
             }, 2000);
         }
 
+        // Check if device is iOS
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        }
+
+        // Check if Battery API is supported
+        function isBatteryAPISupported() {
+            return 'getBattery' in navigator;
+        }
+
         function updateBatteryStatus() {
-            if (navigator.getBattery) {
+            const statusDiv = document.getElementById('status');
+            const powerSourceElement = document.getElementById('powerSource');
+            
+            // Handle iOS devices
+            if (isIOS()) {
+                statusDiv.textContent = translations[currentLang].iosNotSupported;
+                statusDiv.style.backgroundColor = "#FF9800";
+                statusDiv.style.color = "white";
+                
+                // Hide power alert and assume connected
+                togglePowerAlert(false);
+                isPowerConnected = true;
+                return;
+            }
+            
+            // Handle Battery API supported devices
+            if (isBatteryAPISupported()) {
                 navigator.getBattery().then(function(battery) {
-                    let statusDiv = document.getElementById('status');
-                    let powerSourceElement = document.getElementById('powerSource');
-                    
                     if (battery.charging) {
                         statusDiv.textContent = translations[currentLang].powerConnected;
                         statusDiv.style.backgroundColor = "#4CAF50";
                         statusDiv.style.color = "white";
                         powerSourceElement.textContent = translations[currentLang].powerSource + "Adaptor";
                         
-                        // Hide power alert if it was showing and power is now connected
+                        // Hide power alert if power is connected
                         togglePowerAlert(false);
+                        isPowerConnected = true;
                     } else {
                         statusDiv.textContent = translations[currentLang].powerDisconnected;
                         statusDiv.style.backgroundColor = "#F44336";
@@ -480,42 +512,75 @@
                         
                         // Show power alert when power is disconnected
                         togglePowerAlert(true);
+                        isPowerConnected = false;
                     }
+                }).catch(function(error) {
+                    console.log("Error accessing battery: ", error);
+                    handleNoBatteryAPI();
                 });
             } else {
-                document.getElementById('status').textContent = translations[currentLang].batteryUnavailable;
-                document.getElementById('status').style.backgroundColor = "#FF9800";
-                document.getElementById('status').style.color = "white";
-                
-                // For browsers without Battery API, we'll assume power is connected
-                // This can be changed if needed
-                togglePowerAlert(false);
+                handleNoBatteryAPI();
             }
         }
 
+        function handleNoBatteryAPI() {
+            const statusDiv = document.getElementById('status');
+            
+            statusDiv.textContent = translations[currentLang].batteryUnavailable;
+            statusDiv.style.backgroundColor = "#FF9800";
+            statusDiv.style.color = "white";
+            
+            // Assume power is connected to prevent annoying alerts
+            togglePowerAlert(false);
+            isPowerConnected = true;
+        }
+
+        // Helper function to set all battery info to unavailable
+        function setUnavailableBatteryInfo() {
+            const unavailable = translations[currentLang].notAvailable;
+            
+            document.getElementById('batteryCapacity').textContent = 
+                translations[currentLang].batteryCapacity + unavailable;
+            document.getElementById('batteryVoltage').textContent = 
+                translations[currentLang].batteryVoltage + unavailable;
+            document.getElementById('batteryTech').textContent = 
+                translations[currentLang].batteryTechnology + unavailable;
+            document.getElementById('batteryTemp').textContent = 
+                translations[currentLang].batteryTemperature + unavailable;
+            document.getElementById('batteryDuration').textContent = 
+                translations[currentLang].batteryDuration + unavailable;
+            document.getElementById('powerSource').textContent = 
+                translations[currentLang].powerSource + unavailable;
+        }
+
         function getBatteryInfo() {
-            if (navigator.getBattery) {
+            const batterySection = document.querySelector('.info-card:first-of-type'); 
+            
+            // Handle iOS devices
+            if (isIOS()) {
+                handleIOSBatteryInfo(batterySection);
+                return;
+            }
+            
+            // Handle Battery API supported devices
+            if (isBatteryAPISupported()) {
                 navigator.getBattery().then(function(battery) {
-                    // Capacity
+                    // Display battery info
                     const capacity = Math.round(battery.level * 100);
                     document.getElementById('batteryCapacity').textContent = 
                         translations[currentLang].batteryCapacity + capacity + "%";
                     
-                    // Voltage - simulate since not directly available
                     const voltage = "≤4150 mV";
                     document.getElementById('batteryVoltage').textContent = 
                         translations[currentLang].batteryVoltage + voltage;
                     
-                    // Technology
                     document.getElementById('batteryTech').textContent = 
                         translations[currentLang].batteryTechnology + "Li-poly";
                     
-                    // Temperature - simulate since not directly available
                     const temp = "29°C (Sejuk)";
                     document.getElementById('batteryTemp').textContent = 
                         translations[currentLang].batteryTemperature + temp;
                     
-                    // Duration - estimate based on current level
                     const duration = "± 12 - 14 jam";
                     document.getElementById('batteryDuration').textContent = 
                         translations[currentLang].batteryDuration + duration;
@@ -529,27 +594,71 @@
                         document.getElementById('batteryCapacity').textContent = 
                             translations[currentLang].batteryCapacity + Math.round(battery.level * 100) + "%";
                     });
+                }).catch(function(error) {
+                    console.log("Error accessing battery: ", error);
+                    handleNoBatteryAPIInfo(batterySection);
                 });
             } else {
-                // Fallback for browsers without Battery API
-                document.getElementById('batteryCapacity').textContent = 
-                    translations[currentLang].batteryCapacity + "Tidak tersedia";
-                document.getElementById('batteryVoltage').textContent = 
-                    translations[currentLang].batteryVoltage + "Tidak tersedia";
-                document.getElementById('batteryTech').textContent = 
-                    translations[currentLang].batteryTechnology + "Tidak tersedia";
-                document.getElementById('batteryTemp').textContent = 
-                    translations[currentLang].batteryTemperature + "Tidak tersedia";
-                document.getElementById('batteryDuration').textContent = 
-                    translations[currentLang].batteryDuration + "Tidak tersedia";
-                document.getElementById('powerSource').textContent = 
-                    translations[currentLang].powerSource + "Tidak tersedia";
-                    // Fallback for browsers without Battery API
-document.getElementById('batteryCapacity').textContent = 
-    translations[currentLang].batteryCapacity + "Tidak tersedia";
+                handleNoBatteryAPIInfo(batterySection);
             }
         }
-        
+
+        function handleIOSBatteryInfo(batterySection) {
+            const statusDiv = document.getElementById('status');
+            
+            // Display iOS-specific message
+            statusDiv.textContent = translations[currentLang].iosNotSupported;
+            statusDiv.style.backgroundColor = "#FF9800";
+            statusDiv.style.color = "white";
+            
+            // Add explanation to battery section
+            addBatteryExplanation(batterySection, translations[currentLang].iosBatteryExplanation, "#FF9800");
+            
+            // Set all battery values to not available
+            setUnavailableBatteryInfo();
+            
+            // Assume power is connected to prevent annoying alerts on iOS
+            togglePowerAlert(false);
+            isPowerConnected = true;
+        }
+
+        function handleNoBatteryAPIInfo(batterySection) {
+            const statusDiv = document.getElementById('status');
+            
+            // Display browser compatibility message
+            statusDiv.textContent = translations[currentLang].batteryUnavailable;
+            statusDiv.style.backgroundColor = "#FF9800";
+            statusDiv.style.color = "white";
+            
+            // Add explanation to battery section
+            addBatteryExplanation(batterySection, translations[currentLang].browserNotSupported, "#FF9800");
+            
+            // Set all battery values to not available
+            setUnavailableBatteryInfo();
+            
+            // Assume power is connected to prevent annoying alerts
+            togglePowerAlert(false);
+            isPowerConnected = true;
+        }
+
+        function addBatteryExplanation(batterySection, message, color) {
+            // Check if explanation already exists
+            const existingExplanation = batterySection.querySelector('.battery-explanation');
+            if (existingExplanation) {
+                existingExplanation.querySelector('span:last-child').textContent = message;
+                return;
+            }
+            
+            // Create and add explanation
+            const explanationDiv = document.createElement('div');
+            explanationDiv.className = 'info-item battery-explanation';
+            explanationDiv.innerHTML = `
+                <span class="material-icons info-icon">info</span>
+                <span style="color: ${color}; font-weight: bold;">${message}</span>
+            `;
+            batterySection.appendChild(explanationDiv);
+        }
+
         function getDeviceInfo() {
             const userAgent = navigator.userAgent;
             let browser = translations[currentLang].browserUnknown;
@@ -562,7 +671,7 @@ document.getElementById('batteryCapacity').textContent =
             let apiLevel = "28";
             let kernelArch = "AARCH64";
 
-            // Check for architecture - improved detection
+            // Check for architecture
             if (navigator.userAgent.indexOf("WOW64") !== -1 || 
                 navigator.userAgent.indexOf("Win64") !== -1 || 
                 navigator.userAgent.indexOf("x86_64") !== -1 || 
@@ -575,7 +684,7 @@ document.getElementById('batteryCapacity').textContent =
             }
 
             // Detect browser and version
-            if (userAgent.includes("Chrome")) {
+            if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
                 browser = "Chrome";
                 const match = userAgent.match(/Chrome\/(\d+)/);
                 if (match) browserVersion = match[1];
@@ -597,11 +706,11 @@ document.getElementById('batteryCapacity').textContent =
                 if (match) browserVersion = match[1];
             }
 
-            // Improved Windows 11 detection
+            // Detect OS
             if (userAgent.includes("Windows")) {
                 deviceOS = "Windows";
                 
-                // Windows 11 reports as Windows NT 10.0 but has newer build numbers
+                // Windows version detection
                 const windowsMatch = userAgent.match(/Windows NT 10.0(?:;|\))(?:.*)?( Build (\d+))?/);
                 const buildNumberStr = windowsMatch && windowsMatch[2];
                 const buildNumber = buildNumberStr ? parseInt(buildNumberStr) : 0;
@@ -610,7 +719,7 @@ document.getElementById('batteryCapacity').textContent =
                 if (buildNumber >= 22000) {
                     deviceOSVersion = "11";
                 } else {
-                    // For older versions, use traditional detection
+                    // For older versions
                     const ntMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
                     if (ntMatch) {
                         switch(ntMatch[1]) {
@@ -623,20 +732,22 @@ document.getElementById('batteryCapacity').textContent =
                     }
                 }
                 
-                // Additional Windows 11 detection methods
+                // Try User Agent Client Hints for Windows 11 detection
                 if (deviceOSVersion === "10" && navigator.userAgentData) {
-                    // Use newer API if available
-                    navigator.userAgentData.getHighEntropyValues(["platformVersion"])
-                    .then(ua => {
-                        // Windows 11 has platform version >= 13
-                        if (parseInt(ua.platformVersion.split('.')[0]) >= 13) {
-                            deviceOSVersion = "11";
-                            updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
-                        }
-                    })
-                    .catch(e => {
-                        console.log("Could not get detailed platform info");
-                    });
+                    try {
+                        navigator.userAgentData.getHighEntropyValues(["platformVersion"])
+                        .then(ua => {
+                            const platformVersion = parseInt(ua.platformVersion.split('.')[0]);
+                            if (platformVersion >= 13) {
+                                deviceOSVersion = "11";
+                                updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
+                            }
+                        }).catch(e => {
+                            console.log("Failed to get platformVersion", e);
+                        });
+                    } catch (e) {
+                        console.log("Client Hints API not fully supported");
+                    }
                 }
             } else if (userAgent.includes("Mac")) {
                 deviceOS = "MacOS";
