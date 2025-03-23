@@ -544,6 +544,9 @@
                     translations[currentLang].batteryDuration + "Tidak tersedia";
                 document.getElementById('powerSource').textContent = 
                     translations[currentLang].powerSource + "Tidak tersedia";
+                    // Fallback for browsers without Battery API
+document.getElementById('batteryCapacity').textContent = 
+    translations[currentLang].batteryCapacity + "Tidak tersedia";
             }
         }
         
