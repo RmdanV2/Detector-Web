@@ -96,7 +96,33 @@ body {
     color: #007bff;
 }
 
-.power-alert, .ios-alert {
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    display: none;
+    text-align: center;
+    z-index: 1001;
+}
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1000;
+}
+
+/* Power Alert Styles */
+.power-alert {
     position: fixed;
     top: 0;
     left: 0;
@@ -112,12 +138,22 @@ body {
     text-align: center;
 }
 
-.power-alert-content, .ios-alert-content {
+.power-alert-content {
     background-color: #F44336;
     padding: 30px;
     border-radius: 15px;
     max-width: 80%;
     box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.power-alert h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.power-alert p {
+    font-size: 18px;
+    margin-bottom: 20px;
 }
 
 .power-icon {
@@ -126,12 +162,39 @@ body {
     margin-bottom: 15px;
 }
 
-.footer {
-    text-align: center;
-    padding: 10px;
-    background-color: #007bff;
+/* iOS Alert Styles */
+.ios-alert {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     color: white;
-    margin-top: 20px;
+    text-align: center;
+}
+
+.ios-alert-content {
+    background-color: #FF9800;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 80%;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.ios-alert h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.ios-alert p {
+    font-size: 18px;
+    margin-bottom: 20px;
 }
 
 .text-cool {
@@ -155,49 +218,10 @@ body {
     text-align: center;
 }
 
-/* iOS Alert Popup */
-.ios-popup-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85);
-    z-index: 2000;
-    justify-content: center;
-    align-items: center;
-}
-
-.ios-popup {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #FFA500; /* Warna kuning */
-    padding: 20px;
-    border-radius: 15px;
+footer {
     text-align: center;
-    z-index: 2001;
-    max-width: 90%;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-}
-
-.ios-popup-icon {
-    font-size: 50px;
+    padding: 10px;
+    background-color: #007bff;
     color: white;
-    margin-bottom: 15px;
-}
-
-.ios-popup h2 {
-    margin: 0;
-    font-size: 24px;
-    color: white;
-}
-
-.ios-popup p {
-    margin: 10px 0 0;
-    font-size: 18px;
-    color: white;
+    margin-top: 20px;
 }
