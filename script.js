@@ -444,11 +444,13 @@ if (userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.incl
     // iPhone model detection
     if (userAgent.includes("iPhone")) {
         deviceModel = "smartphone";
+    
         
         // iPhone model detection based on screen size, OS version, and device metrics
         const screenWidth = window.screen.width;
         const screenHeight = window.screen.height;
         const pixelRatio = window.devicePixelRatio || 1;
+    }
         
         // iPhone 15 Series (2023)
         if (userAgent.includes("iPhone OS 17")) {
@@ -904,6 +906,9 @@ if (userAgent.includes("Android")) {
             return "Google Pixel XL";
         }
 
+        return "Google Device";
+    }
+    
     // Show iOS alert with detected device model
 function showIosAlert(deviceModel) {
 const iosAlert = document.getElementById('iosAlert');
