@@ -903,7 +903,24 @@ const translations = {
                     return "Google Pixel XL";
                 }
 
-            function updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion) {
+            // Show iOS alert with detected device model
+function showIosAlert(deviceModel) {
+    const iosAlert = document.getElementById('iosAlert');
+    const iosAlertMessage = document.getElementById('iosAlertMessage');
+    
+    if (iosAlert && iosAlertMessage) {
+        // Update message to include the detected device model
+        iosAlertMessage.textContent = translations[currentLang].iosAlertMessage.replace(
+            "perangkat iOS (iPhone/iPad)", 
+            `perangkat iOS (${deviceModel})`
+        );
+        
+        // Show the alert
+        iosAlert.style.display = 'flex';
+    }
+}
+
+function updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion) {
     document.getElementById('deviceModel').innerHTML = 
         translations[currentLang].deviceModel + '<span class="material-icons">' + deviceModel + '</span>' + 
         deviceOS + (deviceOSVersion ? ` (${deviceOSVersion})` : "");
@@ -934,7 +951,32 @@ window.onload = function() {
         translations[currentLang].powerAlertTitle;
     document.getElementById('powerAlertMessage').textContent = 
         translations[currentLang].powerAlertMessage;
-        
+    
+    // Initialize iOS alert translations
+    document.getElementById('iosAlertTitle').textContent = 
+        translations[currentLang].iosAlertTitle || "Perangkat Tidak Didukung";
+    document.getElementById('iosAlertMessage').textContent = 
+        translations[currentLang].iosAlertMessage || "Aplikasi ini tidak mendukung perangkat iOS (iPhone/iPad). Silakan gunakan perangkat Android atau komputer.";
+    
     startLoading();
     updateTranslations();
 };
+
+// Make sure translations object has iOS alert strings
+if (!translations) {
+    var translations = {};
+}
+
+// Add iOS alert translations for each language if they don't exist
+for (const lang in translations) {
+    if (!translations[lang].iosAlertTitle) {
+        translations[lang].iosAlertTitle = lang === "en" ? 
+            "Device Not Supported" : "Perangkat Tidak Didukung";
+    }
+    
+    if (!translations[lang].iosAlertMessage) {
+        translations[lang].iosAlertMessage = lang === "en" ? 
+            "This application does not support iOS devices (iPhone/iPad). Please use an Android device or computer." : 
+            "Aplikasi ini tidak mendukung perangkat iOS (iPhone/iPad). Silakan gunakan perangkat Android atau komputer.";
+    }
+}
