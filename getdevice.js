@@ -10,12 +10,136 @@ function getDeviceInfo() {
     let apiLevel = "28";
     let kernelArch = "AARCH64";
     
+    // Check for architecture - improved detection
+    if (navigator.userAgent.indexOf("WOW64") !== -1 || 
+        navigator.userAgent.indexOf("Win64") !== -1 || 
+        navigator.userAgent.indexOf("x86_64") !== -1 || 
+        navigator.userAgent.indexOf("x64;") !== -1 || 
+        navigator.userAgent.indexOf("AMD64") !== -1 ||
+        navigator.platform === "Win64") {
+        hardware = "Win64";
+    } else if (navigator.platform === "Win32" || navigator.userAgent.indexOf("Win32") !== -1) {
+        hardware = "Win32";
+    }
+    
+    // Detect browser and version
+    if (userAgent.includes("Chrome")) {
+        browser = "Chrome";
+        const match = userAgent.match(/Chrome\/(\d+)/);
+        if (match) browserVersion = match[1];
+    } else if (userAgent.includes("Firefox")) {
+        browser = "Firefox";
+        const match = userAgent.match(/Firefox\/(\d+)/);
+        if (match) browserVersion = match[1];
+    } else if (userAgent.includes("Edg")) {
+        browser = "Edge";
+        const match = userAgent.match(/Edg\/(\d+)/);
+        if (match) browserVersion = match[1];
+    } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+        browser = "Safari";
+        const match = userAgent.match(/Version\/(\d+)/);
+        if (match) browserVersion = match[1];
+    } else if (userAgent.includes("OPR") || userAgent.includes("Opera")) {
+        browser = "Opera";
+        const match = userAgent.match(/OPR\/(\d+)/);
+        if (match) browserVersion = match[1];
+    }
+    
+    // Detect OS
+    if (userAgent.includes("Windows")) {
+        deviceOS = "Windows";
+        
+        // Windows 11 reports as Windows NT 10.0 but has newer build numbers
+        const windowsMatch = userAgent.match(/Windows NT 10.0(?:;|\))(?:.*)?( Build (\d+))?/);
+        const buildNumberStr = windowsMatch && windowsMatch[2];
+        const buildNumber = buildNumberStr ? parseInt(buildNumberStr) : 0;
+        
+        // Windows 11 starts with build number 22000
+        if (buildNumber >= 22000) {
+            deviceOSVersion = "11";
+        } else {
+            // For older versions, use traditional detection
+            const ntMatch = userAgent.match(/Windows NT (\d+\.\d+)/);
+            if (ntMatch) {
+                switch(ntMatch[1]) {
+                    case "10.0": deviceOSVersion = "10"; break;
+                    case "6.3": deviceOSVersion = "8.1"; break;
+                    case "6.2": deviceOSVersion = "8"; break;
+                    case "6.1": deviceOSVersion = "7"; break;
+                    default: deviceOSVersion = ntMatch[1];
+                }
+            }
+        }
+        
+        // Additional Windows 11 detection methods
+        if (deviceOSVersion === "10" && navigator.userAgentData) {
+            // Use newer API if available
+            navigator.userAgentData.getHighEntropyValues(["platformVersion"])
+            .then(ua => {
+                // Windows 11 has platform version >= 13
+                if (parseInt(ua.platformVersion.split('.')[0]) >= 13) {
+                    deviceOSVersion = "11";
+                    updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
+                }
+            })
+            .catch(e => {
+                console.log("Could not get detailed platform info");
+            });
+        }
+    } else if (userAgent.includes("Mac")) {
+        deviceOS = "MacOS";
+        deviceModel = "desktop_mac";
+        const match = userAgent.match(/Mac OS X (\d+[._]\d+)/);
+        if (match) deviceOSVersion = match[1].replace("_", ".");
+    } else if (userAgent.includes("Linux")) {
+        deviceOS = "Linux";
+        deviceModel = "computer";
+    } else if (userAgent.includes("Android")) {
+        deviceOS = "Android";
+        deviceModel = "smartphone";
+        const match = userAgent.match(/Android (\d+(\.\d+)?)/);
+        if (match) deviceOSVersion = match[1];
+        
+        // Detailed device detection for Android
+        const detectedDevice = detectDetailedDeviceModel();
+        if (detectedDevice) {
+            const parts = detectedDevice.split(" ");
+            if (parts.length > 0) {
+                vendor = parts[0];
+                if (detectedDevice.toLowerCase().includes("tablet")) {
+                    deviceModel = "tablet";
+                }
+            }
+        }
+    } else if (userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.includes("iPod")) {
+        deviceOS = "iOS";
+        vendor = "Apple";
+        
+        // Get iOS version
+        const match = userAgent.match(/OS (\d+_\d+)/);
+        if (match) deviceOSVersion = match[1].replace("_", ".");
+        
+        if (userAgent.includes("iPhone")) {
+            deviceModel = "smartphone";
+        } else if (userAgent.includes("iPad")) {
+            deviceModel = "tablet";
+        } else if (userAgent.includes("iPod")) {
+            deviceModel = "smartphone";
+        }
+        
+        // Get detailed iOS device info
+        const detectedDevice = detectDetailedDeviceModel();
+        if (detectedDevice) {
+            // Device model is already set (smartphone/tablet) based on device type
+        }
+    }
+    
+    updateDeviceInfo(deviceModel, deviceOS, deviceOSVersion, vendor, hardware, apiLevel, kernelArch, browser, browserVersion);
+    
     // Detailed device detection for mobile devices
     function detectDetailedDeviceModel() {
         // iOS devices detection with model numbers
         if (userAgent.includes("iPhone") || userAgent.includes("iPad") || userAgent.includes("iPod")) {
-            vendor = "Apple";
-            
             // iPhone model detection
             if (userAgent.includes("iPhone")) {
                 deviceModel = "smartphone";
@@ -130,9 +254,9 @@ function getDeviceInfo() {
                 deviceModel = "tablet";
                 
                 if (userAgent.includes("iPad Pro")) {
-                    if (screenWidth === 1024 || screenHeight === 1024) {
+                    if (window.screen.width === 1024 || window.screen.height === 1024) {
                         return "iPad Pro 12.9-inch";
-                    } else if (screenWidth === 834 || screenHeight === 834) {
+                    } else if (window.screen.width === 834 || window.screen.height === 834) {
                         return "iPad Pro 11-inch";
                     }
                     return "iPad Pro";
@@ -478,124 +602,39 @@ function getDeviceInfo() {
                 } else if (userAgent.includes("Pixel XL")) {
                     return "Google Pixel XL";
                 }
-                
-                const pixelMatch = userAgent.match(/Pixel (\d+)(?:.*XL)?/);
-                if (pixelMatch) {
-                    return `Google Pixel ${pixelMatch[1]}`;
-                }
-                
-                return "Google Pixel";
-            }
-            
-            // OnePlus detection
-            if (userAgent.includes("OnePlus")) {
-                vendor = "OnePlus";
-                
-                if (userAgent.includes("OnePlus 11")) {
-                    return "OnePlus 11";
-                } else if (userAgent.includes("OnePlus 10 Pro")) {
-                    return "OnePlus 10 Pro";
-                } else if (userAgent.includes("OnePlus 10T")) {
-                    return "OnePlus 10T";
-                } else if (userAgent.includes("OnePlus 9 Pro")) {
-                    return "OnePlus 9 Pro";
-                } else if (userAgent.includes("OnePlus 9")) {
-                    return "OnePlus 9";
-                } else if (userAgent.includes("OnePlus 8T")) {
-                    return "OnePlus 8T";
-                } else if (userAgent.includes("OnePlus 8 Pro")) {
-                    return "OnePlus 8 Pro";
-                } else if (userAgent.includes("OnePlus 8")) {
-                    return "OnePlus 8";
-                } else if (userAgent.includes("OnePlus 7T Pro")) {
-                    return "OnePlus 7T Pro";
-                } else if (userAgent.includes("OnePlus 7T")) {
-                    return "OnePlus 7T";
-                } else if (userAgent.includes("OnePlus 7 Pro")) {
-                    return "OnePlus 7 Pro";
-                } else if (userAgent.includes("OnePlus 7")) {
-                    return "OnePlus 7";
-                } else if (userAgent.includes("OnePlus Nord")) {
-                    return "OnePlus Nord";
-                }
-                
-                const onePlusMatch = userAgent.match(/OnePlus (\d+)(?:.*Pro)?/);
-                if (onePlusMatch) {
-                    return `OnePlus ${onePlusMatch[1]}`;
-                }
-                
-                return "OnePlus Device";
-            }
-            
-            // OPPO detection
-            if (userAgent.includes("OPPO")) {
-                vendor = "OPPO";
-                
-                if (userAgent.includes("Find X5 Pro")) {
-                    return "OPPO Find X5 Pro";
-                } else if (userAgent.includes("Find X5")) {
-                    return "OPPO Find X5";
-                } else if (userAgent.includes("Find X3 Pro")) {
-                    return "OPPO Find X3 Pro";
-                } else if (userAgent.includes("Find X3")) {
-                    return "OPPO Find X3";
-                } else if (userAgent.includes("Find X2 Pro")) {
-                    return "OPPO Find X2 Pro";
-                } else if (userAgent.includes("Find X2")) {
-                    return "OPPO Find X2";
-                } else if (userAgent.includes("Reno 8 Pro")) {
-                    return "OPPO Reno 8 Pro";
-                } else if (userAgent.includes("Reno 8")) {
-                    return "OPPO Reno 8";
-                } else if (userAgent.includes("Reno 7 Pro")) {
-                    return "OPPO Reno 7 Pro";
-                } else if (userAgent.includes("Reno 7")) {
-                    return "OPPO Reno 7";
-                } else if (userAgent.includes("Reno 6 Pro")) {
-                    return "OPPO Reno 6 Pro";
-                } else if (userAgent.includes("Reno 6")) {
-                    return "OPPO Reno 6";
-                } else if (userAgent.includes("Reno 5 Pro")) {
-                    return "OPPO Reno 5 Pro";
-                } else if (userAgent.includes("Reno 5")) {
-                    return "OPPO Reno 5";
-                }
-                
-                return "OPPO Device";
-            }
-            
-            // Vivo detection
-            if (userAgent.includes("vivo") || userAgent.includes("Vivo")) {
-                vendor = "Vivo";
-                
-                if (userAgent.includes("X80 Pro")) {
-                    return "Vivo X80 Pro";
-                } else if (userAgent.includes("X80")) {
-                    return "Vivo X80";
-                } else if (userAgent.includes("X70 Pro+")) {
-                    return "Vivo X70 Pro+";
-                } else if (userAgent.includes("X70 Pro")) {
-                    return "Vivo X70 Pro";
-                } else if (userAgent.includes("X70")) {
-                    return "Vivo X70";
-                } else if (userAgent.includes("V25 Pro")) {
-                    return "Vivo V25 Pro";
-                } else if (userAgent.includes("V25")) {
-                    return "Vivo V25";
-                } else if (userAgent.includes("V23 Pro")) {
-                    return "Vivo V23 Pro";
-                } else if (userAgent.includes("V23")) {
-                    return "Vivo V23";
-                } else if (userAgent.includes("Y75")) {
-                    return "Vivo Y75";
-                } else if (userAgent.includes("Y73")) {
-                    return "Vivo Y73";
-                } else if (userAgent.includes("Y72")) {
-                    return "Vivo Y72";
-                } else if (userAgent.includes("Y55")) {
-                    return "Vivo Y55";
-                } else if (userAgent.includes("Y35")) {
-                    return "Vivo Y35";
-                } else if (userAgent.includes("Y33")) {
-                    return "Vivo Y33";
-                }
+
+            function updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion) {
+    document.getElementById('deviceModel').innerHTML = 
+        translations[currentLang].deviceModel + '<span class="material-icons">' + deviceModel + '</span>' + 
+        deviceOS + (deviceOSVersion ? ` (${deviceOSVersion})` : "");
+}
+
+function updateDeviceInfo(deviceModel, deviceOS, deviceOSVersion, vendor, hardware, apiLevel, kernelArch, browser, browserVersion) {
+    updateDeviceModelDisplay(deviceModel, deviceOS, deviceOSVersion);
+    
+    document.getElementById('deviceVendor').textContent = 
+        translations[currentLang].deviceVendor + vendor;
+    
+    document.getElementById('deviceHardware').textContent = 
+        translations[currentLang].deviceHardware + hardware;
+    
+    document.getElementById('deviceApiLevel').textContent = 
+        translations[currentLang].deviceApiLevel + apiLevel;
+    
+    document.getElementById('deviceArchitecture').textContent = 
+        translations[currentLang].deviceArchitecture + kernelArch;
+    
+    document.getElementById('deviceBrowser').textContent = 
+        translations[currentLang].deviceBrowser + browser + (browserVersion ? ` (${browserVersion})` : "");
+}
+
+window.onload = function() {
+    // Initialize power alert translations
+    document.getElementById('powerAlertTitle').textContent = 
+        translations[currentLang].powerAlertTitle;
+    document.getElementById('powerAlertMessage').textContent = 
+        translations[currentLang].powerAlertMessage;
+        
+    startLoading();
+    updateTranslations();
+};
