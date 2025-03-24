@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pendeteksi Sistem</title>
-    <!-- Link to external CSS file -->
-    <link rel="stylesheet" href="styles.css">
-    <!-- Add Material Icons -->
+    <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <!-- Power Alert Overlay -->
     <div id="powerAlert" class="power-alert" style="display: none;">
         <div class="power-alert-content">
             <span class="material-icons power-icon">power_off</span>
@@ -19,14 +16,14 @@
         </div>
     </div>
 
-    <!-- iOS Alert Overlay -->
-    <div id="iosAlert" class="ios-alert" style="display: none;">
-        <div class="ios-alert-content">
-            <span class="material-icons power-icon">error</span>
-            <h2 id="iosAlertTitle">Perangkat Tidak Didukung</h2>
-            <p id="iosAlertMessage">Aplikasi ini tidak mendukung perangkat iOS (iPhone/iPad). Silakan gunakan perangkat Android atau komputer.</p>
-        </div>
+    <!-- iOS Alert Popup -->
+<div class="ios-popup-overlay" id="iosPopupOverlay">
+    <div class="ios-popup" id="iosPopup">
+        <span class="material-icons ios-popup-icon">warning</span>
+        <h2>Mohon Maaf, Untuk Pengguna iOS atau iPhone Tidak Support Untuk Aplikasi Ini.</h2>
+        <p id="iosDeviceModel">Device: <span id="iosDeviceModelText"></span></p>
     </div>
+</div>
 
     <div class="navbar">
         <h1 id="title">Pendeteksi Sistem</h1>
@@ -123,12 +120,11 @@
         <h2 id="popupText"></h2>
     </div>
 
-    <footer>
+    <footer style="text-align: center; padding: 10px; background-color: #007bff; color: white; margin-top: 20px;">
         <p>Create By Ramdan</p>
-        <p>Version 1.1</p>
+        <p>Version 1.0</p>
     </footer>
 
-    <!-- Link to external JavaScript file -->
     <script src="script.js"></script>
 </body>
 </html>
