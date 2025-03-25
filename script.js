@@ -88,148 +88,96 @@ const translations = {
         let currentLang = 'id';
         let isPowerConnected = false;
 
-        // Expanded iOS device detection function
-function getIOSDeviceDetails() {
-    const userAgent = navigator.userAgent;
-    const modelMappings = {
-        // iPhone 6S and 6S Plus
-        'A1633': { name: 'iPhone 6S (GSM)', series: '6S' },
-        'A1688': { name: 'iPhone 6S (CDMA)', series: '6S' },
-        'A1699': { name: 'iPhone 6S Plus (GSM)', series: '6S Plus' },
-        'A1700': { name: 'iPhone 6S Plus (CDMA)', series: '6S Plus' },
+        function getIOSDeviceDetails() {
+            const userAgent = navigator.userAgent;
+            
+            // Mapping yang lebih komprehensif
+            const deviceModels = {
+                // iPhone 11 Pro
+                'iPhone12,3': { 
+                    name: 'iPhone 11 Pro', 
+                    series: 'iPhone 11 Pro', 
+                    modelCodes: ['A2160', 'A2161', 'A2162'] 
+                },
+                // iPhone 11 Pro Max
+                'iPhone12,5': { 
+                    name: 'iPhone 11 Pro Max', 
+                    series: 'iPhone 11 Pro Max', 
+                    modelCodes: ['A2161', 'A2162', 'A2163'] 
+                },
+                // iPhone 11
+                'iPhone12,1': { 
+                    name: 'iPhone 11', 
+                    series: 'iPhone 11', 
+                    modelCodes: ['A2111', 'A2221', 'A2223'] 
+                },
+                // Tambahkan model-model lain sesuai kebutuhan
+                'iPhone13,3': { 
+                    name: 'iPhone 12 Pro', 
+                    series: 'iPhone 12 Pro', 
+                    modelCodes: ['A2341'] 
+                },
+                'iPhone13,4': { 
+                    name: 'iPhone 12 Pro Max', 
+                    series: 'iPhone 12 Pro Max', 
+                    modelCodes: ['A2342', 'A2411'] 
+                }
+            };
         
-        // iPhone SE (1st Generation)
-        'A1662': { name: 'iPhone SE (1st Gen, GSM)', series: 'iPhone SE' },
-        'A1723': { name: 'iPhone SE (1st Gen, GSM)', series: 'iPhone SE' },
-        'A1724': { name: 'iPhone SE (1st Gen, GSM)', series: 'iPhone SE' },
+            function detectiOSModel() {
+                // Cara pertama: coba deteksi menggunakan navigator.platform
+                const platformMatch = navigator.platform.match(/iPhone(\d+,\d+)/i);
+                if (platformMatch) {
+                    const modelCode = platformMatch[1];
+                    return deviceModels[modelCode] || { 
+                        name: 'iPhone tidak dikenal', 
+                        series: 'iPhone' 
+                    };
+                }
         
-        // iPhone 7 and 7 Plus
-        'A1660': { name: 'iPhone 7 (GSM/CDMA)', series: 'iPhone 7' },
-        'A1778': { name: 'iPhone 7 (GSM)', series: 'iPhone 7' },
-        'A1779': { name: 'iPhone 7 Plus (GSM)', series: 'iPhone 7 Plus' },
-        'A1780': { name: 'iPhone 7 Plus (GSM)', series: 'iPhone 7 Plus' },
+                // Cara kedua: deteksi menggunakan user agent
+                const userAgentMatch = userAgent.match(/iPhone(\d+,\d+)/i);
+                if (userAgentMatch) {
+                    const modelCode = userAgentMatch[1];
+                    return deviceModels[modelCode] || { 
+                        name: 'iPhone tidak dikenal', 
+                        series: 'iPhone' 
+                    };
+                }
         
-        // iPhone 8 and 8 Plus
-        'A1863': { name: 'iPhone 8 (GSM/CDMA)', series: 'iPhone 8' },
-        'A1905': { name: 'iPhone 8 (GSM)', series: 'iPhone 8' },
-        'A1897': { name: 'iPhone 8 Plus (GSM/CDMA)', series: 'iPhone 8 Plus' },
-        'A1906': { name: 'iPhone 8 Plus (GSM)', series: 'iPhone 8 Plus' },
+                // Fallback jika tidak bisa mendeteksi
+                return { 
+                    name: 'iPhone tidak dikenal', 
+                    series: 'iPhone' 
+                };
+            }
         
-        // iPhone X
-        'A1865': { name: 'iPhone X (GSM)', series: 'iPhone X' },
-        'A1901': { name: 'iPhone X (GSM)', series: 'iPhone X' },
-        'A1902': { name: 'iPhone X (China)', series: 'iPhone X' },
-        
-        // iPhone XR
-        'A1984': { name: 'iPhone XR (Global)', series: 'iPhone XR' },
-        'A2105': { name: 'iPhone XR (China)', series: 'iPhone XR' },
-        'A2106': { name: 'iPhone XR (Japan)', series: 'iPhone XR' },
-        'A2108': { name: 'iPhone XR (China)', series: 'iPhone XR' },
-        
-        // iPhone XS and XS Max
-        'A1920': { name: 'iPhone XS (Global)', series: 'iPhone XS' },
-        'A2097': { name: 'iPhone XS (Japan)', series: 'iPhone XS' },
-        'A2098': { name: 'iPhone XS (China)', series: 'iPhone XS' },
-        'A1921': { name: 'iPhone XS Max (Global)', series: 'iPhone XS Max' },
-        'A2100': { name: 'iPhone XS Max (China)', series: 'iPhone XS Max' },
-        
-        // iPhone 11, 11 Pro, 11 Pro Max
-        'A2111': { name: 'iPhone 11 (Global)', series: 'iPhone 11' },
-        'A2221': { name: 'iPhone 11 (China)', series: 'iPhone 11' },
-        'A2223': { name: 'iPhone 11 (Japan)', series: 'iPhone 11' },
-        'A2160': { name: 'iPhone 11 Pro (Global)', series: 'iPhone 11 Pro' },
-        'A2161': { name: 'iPhone 11 Pro (China)', series: 'iPhone 11 Pro' },
-        'A2162': { name: 'iPhone 11 Pro (Japan)', series: 'iPhone 11 Pro' },
-        'A2161': { name: 'iPhone 11 Pro Max (Global)', series: 'iPhone 11 Pro Max' },
-        'A2162': { name: 'iPhone 11 Pro Max (China)', series: 'iPhone 11 Pro Max' },
-        
-        // iPhone SE (2nd Generation)
-        'A2275': { name: 'iPhone SE (2nd Gen, Global)', series: 'iPhone SE' },
-        'A2296': { name: 'iPhone SE (2nd Gen, China)', series: 'iPhone SE' },
-        'A2298': { name: 'iPhone SE (2nd Gen, Japan)', series: 'iPhone SE' },
-        
-        // iPhone 12 Series
-        'A2176': { name: 'iPhone 12 (Global)', series: 'iPhone 12' },
-        'A2403': { name: 'iPhone 12 (China)', series: 'iPhone 12' },
-        'A2407': { name: 'iPhone 12 (Japan)', series: 'iPhone 12' },
-        'A2410': { name: 'iPhone 12 (Australia)', series: 'iPhone 12' },
-        'A2341': { name: 'iPhone 12 Pro (Global)', series: 'iPhone 12 Pro' },
-        'A2342': { name: 'iPhone 12 Pro Max (Global)', series: 'iPhone 12 Pro Max' },
-        'A2411': { name: 'iPhone 12 Pro Max (China)', series: 'iPhone 12 Pro Max' },
-        
-        // iPhone 13 Series
-        'A2633': { name: 'iPhone 13 (Global)', series: 'iPhone 13' },
-        'A2638': { name: 'iPhone 13 (China)', series: 'iPhone 13' },
-        'A2628': { name: 'iPhone 13 Mini (Global)', series: 'iPhone 13 Mini' },
-        'A2643': { name: 'iPhone 13 Pro (Global)', series: 'iPhone 13 Pro' },
-        'A2645': { name: 'iPhone 13 Pro Max (Global)', series: 'iPhone 13 Pro Max' },
-        
-        // iPhone 14 Series
-        'A2649': { name: 'iPhone 14 (Global)', series: 'iPhone 14' },
-        'A2632': { name: 'iPhone 14 Plus (Global)', series: 'iPhone 14 Plus' },
-        'A2650': { name: 'iPhone 14 Pro (Global)', series: 'iPhone 14 Pro' },
-        'A2651': { name: 'iPhone 14 Pro Max (Global)', series: 'iPhone 14 Pro Max' },
-        
-        // iPhone 15 Series
-        'A3091': { name: 'iPhone 15 (Global)', series: 'iPhone 15' },
-        'A3092': { name: 'iPhone 15 Plus (Global)', series: 'iPhone 15 Plus' },
-        'A3093': { name: 'iPhone 15 Pro (Global)', series: 'iPhone 15 Pro' },
-        'A3094': { name: 'iPhone 15 Pro Max (Global)', series: 'iPhone 15 Pro Max' },
-        
-        // iPhone SE (3rd Generation)
-        'A2595': { name: 'iPhone SE (3rd Gen, Global)', series: 'iPhone SE' },
-        'A2596': { name: 'iPhone SE (3rd Gen, China)', series: 'iPhone SE' },
-        'A2783': { name: 'iPhone SE (3rd Gen, Japan)', series: 'iPhone SE' },
-        'A2784': { name: 'iPhone SE (3rd Gen, Global)', series: 'iPhone SE' }
-    };
-
-    // Try to get model info from navigator.platform or userAgent
-    let deviceModel = 'Unknown iPhone';
-    let modelCode = 'N/A';
-
-    // Attempt to extract model code (this part might need adjustment based on actual device detection)
-    const modelCodeMatch = userAgent.match(/iPhone(\d+,\d+)/);
-    if (modelCodeMatch) {
-        modelCode = modelCodeMatch[1];
-    }
-
-    // Function to find closest match if exact model code not found
-    function findClosestModel(code) {
-        const modelKeys = Object.keys(modelMappings);
-        return modelKeys.find(key => 
-            modelMappings[key].series.toLowerCase().includes(code.toLowerCase())
-        ) || modelKeys[0];
-    }
-
-    // If navigator.platform exists, try to use it
-    if (navigator.platform && navigator.platform.includes('iPhone')) {
-        const platformParts = navigator.platform.split(',');
-        if (platformParts.length > 1) {
-            modelCode = platformParts[1].trim();
+            return detectiOSModel();
         }
-    }
-
-    // Find the closest matching model
-    const closestModelKey = findClosestModel(modelCode);
-    const detectedModel = modelMappings[closestModelKey] || { name: 'Unknown iPhone', series: 'iPhone' };
-
-    return detectedModel;
-}
-
-function showIOSAlert() {
-    const detectedDevice = getIOSDeviceDetails();
-    
-    // Update iOS alert message with device details
-    document.getElementById('iosAlertDeviceMessage').textContent = 
-        translations[currentLang].iosAlertDeviceMessage + detectedDevice.name;
-    
-    document.getElementById('iosAlert').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    
-    // Hide all other content
-    document.querySelector('.container').style.display = 'none';
-    document.querySelector('footer').style.display = 'none';
-}
+        
+        function showIOSAlert() {
+            const detectedDevice = getIOSDeviceDetails();
+            
+            // Perbarui pesan alert dengan detail perangkat
+            document.getElementById('iosAlertDeviceMessage').textContent = 
+                translations[currentLang].iosAlertDeviceMessage + detectedDevice.name;
+            
+            document.getElementById('iosAlert').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Sembunyikan konten lain
+            document.querySelector('.container').style.display = 'none';
+            document.querySelector('footer').style.display = 'none';
+        }
+        
+        // Tambahkan fungsi untuk log debugging (opsional)
+        function logDeviceInfo() {
+            console.log('User Agent:', navigator.userAgent);
+            console.log('Platform:', navigator.platform);
+        }
+        
+        // Panggil fungsi log saat halaman dimuat
+        window.addEventListener('load', logDeviceInfo);
         
         // Function to detect iOS devices
         function isIOS() {
