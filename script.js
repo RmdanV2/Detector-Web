@@ -84,105 +84,83 @@ const translations = {
                 iosAlertDeviceMessage: "Your Device: "
             }
         };
+
+        // Tambahkan ke objek translations dalam file Anda
+const iPhoneModels = {
+    // iPhone 14 Series
+    'iPhone14,3': 'iPhone 14 Pro Max',
+    'iPhone14,2': 'iPhone 14 Pro',
+    'iPhone14,5': 'iPhone 14 Plus',
+    'iPhone14,4': 'iPhone 14',
+
+    // iPhone 13 Series
+    'iPhone13,4': 'iPhone 13 Pro Max',
+    'iPhone13,3': 'iPhone 13 Pro',
+    'iPhone13,2': 'iPhone 13',
+    'iPhone13,1': 'iPhone 13 Mini',
+
+    // iPhone 12 Series
+    'iPhone12,5': 'iPhone 12 Pro Max',
+    'iPhone12,3': 'iPhone 12 Pro',
+    'iPhone12,1': 'iPhone 12',
+    'iPhone12,2': 'iPhone 12 Mini',
+
+    // iPhone 11 Series
+    'iPhone11,6': 'iPhone 11 Pro Max',
+    'iPhone11,4': 'iPhone 11 Pro Max',
+    'iPhone11,3': 'iPhone 11 Pro',
+    'iPhone11,2': 'iPhone 11 Pro',
+    'iPhone11,8': 'iPhone 11',
+    'iPhone11,1': 'iPhone 11'
+};
         
         let currentLang = 'id';
         let isPowerConnected = false;
-
-        function getIOSDeviceDetails() {
-            const userAgent = navigator.userAgent;
-            
-            // Mapping yang lebih komprehensif
-            const deviceModels = {
-                // iPhone 11 Pro
-                'iPhone12,3': { 
-                    name: 'iPhone 11 Pro', 
-                    series: 'iPhone 11 Pro', 
-                    modelCodes: ['A2160', 'A2161', 'A2162'] 
-                },
-                // iPhone 11 Pro Max
-                'iPhone12,5': { 
-                    name: 'iPhone 11 Pro Max', 
-                    series: 'iPhone 11 Pro Max', 
-                    modelCodes: ['A2161', 'A2162', 'A2163'] 
-                },
-                // iPhone 11
-                'iPhone12,1': { 
-                    name: 'iPhone 11', 
-                    series: 'iPhone 11', 
-                    modelCodes: ['A2111', 'A2221', 'A2223'] 
-                },
-                // Tambahkan model-model lain sesuai kebutuhan
-                'iPhone13,3': { 
-                    name: 'iPhone 12 Pro', 
-                    series: 'iPhone 12 Pro', 
-                    modelCodes: ['A2341'] 
-                },
-                'iPhone13,4': { 
-                    name: 'iPhone 12 Pro Max', 
-                    series: 'iPhone 12 Pro Max', 
-                    modelCodes: ['A2342', 'A2411'] 
-                }
-            };
         
-            function detectiOSModel() {
-                // Cara pertama: coba deteksi menggunakan navigator.platform
-                const platformMatch = navigator.platform.match(/iPhone(\d+,\d+)/i);
-                if (platformMatch) {
-                    const modelCode = platformMatch[1];
-                    return deviceModels[modelCode] || { 
-                        name: 'iPhone tidak dikenal', 
-                        series: 'iPhone' 
-                    };
-                }
         
-                // Cara kedua: deteksi menggunakan user agent
-                const userAgentMatch = userAgent.match(/iPhone(\d+,\d+)/i);
-                if (userAgentMatch) {
-                    const modelCode = userAgentMatch[1];
-                    return deviceModels[modelCode] || { 
-                        name: 'iPhone tidak dikenal', 
-                        series: 'iPhone' 
-                    };
-                }
-        
-                // Fallback jika tidak bisa mendeteksi
-                return { 
-                    name: 'iPhone tidak dikenal', 
-                    series: 'iPhone' 
-                };
-            }
-        
-            return detectiOSModel();
-        }
-        
-        function showIOSAlert() {
-            const detectedDevice = getIOSDeviceDetails();
-            
-            // Perbarui pesan alert dengan detail perangkat
-            document.getElementById('iosAlertDeviceMessage').textContent = 
-                translations[currentLang].iosAlertDeviceMessage + detectedDevice.name;
-            
-            document.getElementById('iosAlert').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            
-            // Sembunyikan konten lain
-            document.querySelector('.container').style.display = 'none';
-            document.querySelector('footer').style.display = 'none';
-        }
-        
-        // Tambahkan fungsi untuk log debugging (opsional)
-        function logDeviceInfo() {
-            console.log('User Agent:', navigator.userAgent);
-            console.log('Platform:', navigator.platform);
-        }
-        
-        // Panggil fungsi log saat halaman dimuat
-        window.addEventListener('load', logDeviceInfo);
-        
-        // Function to detect iOS devices
         function isIOS() {
-            return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isPlatformIOS = /iPad|iPhone|iPod/.test(navigator.platform) || 
+                                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isIOSUserAgent = /iphone|ipad|ipod/.test(userAgent);
+            
+            return (isPlatformIOS || isIOSUserAgent) && !window.MSStream;
         }
+
+        // Fungsi untuk mendapatkan detail spesifik iPhone
+function getIOSDeviceDetails() {
+    if (!isIOS()) {
+        return null;
+    }
+
+    const userAgent = navigator.userAgent;
+    
+    // Cari model iPhone dalam user agent
+    let detectedModel = translations[currentLang].deviceUnknown;
+    let detectedModelCode = '';
+
+    // Pola regex untuk menemukan kode model iPhone
+    const modelCodeMatch = userAgent.match(/iPhone\d+,\d+/);
+    if (modelCodeMatch) {
+        detectedModelCode = modelCodeMatch[0];
+        detectedModel = iPhoneModels[detectedModelCode] || translations[currentLang].deviceUnknown;
+    }
+
+    // Tambahkan informasi tambahan
+    const osVersion = userAgent.match(/OS (\d+[._]\d+)/);
+    
+    return {
+        isIOSDevice: true,
+        deviceModelCode: detectedModelCode,
+        deviceModel: detectedModel,
+        osVersion: osVersion ? osVersion[1].replace('_', '.') : translations[currentLang].deviceUnknown,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        isRetina: window.devicePixelRatio > 1,
+        touchSupport: 'ontouchstart' in window,
+        screenOrientation: window.screen.orientation?.type || translations[currentLang].deviceUnknown
+    };
+}
         
         function switchLanguage() {
             currentLang = document.getElementById('languageSwitcher').value;
@@ -248,6 +226,14 @@ const translations = {
             }
         }
         
+        function showIOSAlert() {
+            document.getElementById('iosAlert').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Hide all other content
+            document.querySelector('.container').style.display = 'none';
+            document.querySelector('footer').style.display = 'none';
+        }
 
         function activateFeature(feature) {
             // Only allow feature activation if power is connected
@@ -278,20 +264,26 @@ const translations = {
             }, 2000);
         }
 
-        function startLoading() {
-            // First check if device is iOS
-            if (isIOS()) {
-                showIOSAlert();
-                return;
-            }
-            
-            showPopup(translations[currentLang].checkingSystem);
-            setTimeout(() => {
-                getBatteryInfo();
-                showPopup(translations[currentLang].gettingDeviceData);
-                setTimeout(getDeviceInfo, 2000);
-            }, 2000);
-        }
+       // Modifikasi fungsi startLoading untuk menangani iOS
+function startLoading() {
+    // Pertama, periksa apakah perangkat adalah iOS
+    const iosDevice = getIOSDeviceDetails();
+    if (iosDevice) {
+        // Tambahkan detail perangkat ke alert iOS
+        document.getElementById('iosAlertDeviceMessage').textContent = 
+            translations[currentLang].iosAlertDeviceMessage + iosDevice.deviceModel;
+        
+        showIOSAlert();
+        return;
+    }
+    
+    showPopup(translations[currentLang].checkingSystem);
+    setTimeout(() => {
+        getBatteryInfo();
+        showPopup(translations[currentLang].gettingDeviceData);
+        setTimeout(getDeviceInfo, 2000);
+    }, 2000);
+}
 
         function updateBatteryStatus() {
             if (navigator.getBattery) {
@@ -520,6 +512,10 @@ const translations = {
                 translations[currentLang].powerAlertTitle;
             document.getElementById('powerAlertMessage').textContent = 
                 translations[currentLang].powerAlertMessage;
+            
+            // Tambahkan translasi untuk iOS alert device message
+            translations.id.iosAlertDeviceMessage = "Perangkat Anda: ";
+            translations.en.iosAlertDeviceMessage = "Your Device: ";
                 
             startLoading();
             updateTranslations();
